@@ -1,4 +1,5 @@
 from . import _pocketfft
+from . import _config as cfg
 
 def fft(x, n=None, axis=-1, norm=None, overwrite_x=False):
     """
@@ -115,7 +116,7 @@ def fft(x, n=None, axis=-1, norm=None, overwrite_x=False):
 
     """
 
-    return _pocketfft.fft(x, n, axis, norm, overwrite_x)
+    return cfg._functions['fft'](x, n, axis, norm, overwrite_x)
 
 
 def ifft(x, n=None, axis=-1, norm=None, overwrite_x=False):
@@ -208,7 +209,7 @@ def ifft(x, n=None, axis=-1, norm=None, overwrite_x=False):
     >>> plt.show()
 
     """
-    return _pocketfft.ifft(x, n, axis, norm, overwrite_x)
+    return cfg._functions['ifft'](x, n, axis, norm, overwrite_x)
 
 
 def rfft(x, n=None, axis=-1, norm=None, overwrite_x=False):
@@ -290,7 +291,7 @@ def rfft(x, n=None, axis=-1, norm=None, overwrite_x=False):
     exploited to compute only the non-negative frequency terms.
 
     """
-    return _pocketfft.rfft(x, n, axis, norm, overwrite_x)
+    return cfg._functions['rfft'](x, n, axis, norm, overwrite_x)
 
 
 def irfft(x, n=None, axis=-1, norm=None, overwrite_x=False):
@@ -380,7 +381,7 @@ def irfft(x, n=None, axis=-1, norm=None, overwrite_x=False):
     specified, and the output array is purely real.
 
     """
-    return _pocketfft.irfft(x, n, axis, norm, overwrite_x)
+    return cfg._functions['irfft'](x, n, axis, norm, overwrite_x)
 
 
 def fftn(x, s=None, axes=None, norm=None, overwrite_x=False):
@@ -475,7 +476,7 @@ def fftn(x, s=None, axes=None, norm=None, overwrite_x=False):
 
     """
 
-    return _pocketfft.fftn(x, s, axes, norm, overwrite_x)
+    return cfg._functions['fftn'](x, s, axes, norm, overwrite_x)
 
 
 def ifftn(x, s=None, axes=None, norm=None, overwrite_x=False):
@@ -568,7 +569,7 @@ def ifftn(x, s=None, axes=None, norm=None, overwrite_x=False):
     >>> plt.show()
 
     """
-    return _pocketfft.ifftn(x, s, axes, norm, overwrite_x)
+    return cfg._functions['ifftn'](x, s, axes, norm, overwrite_x)
 
 
 def fft2(x, s=None, axes=(-2, -1), norm=None, overwrite_x=False):
@@ -658,7 +659,7 @@ def fft2(x, s=None, axes=(-2, -1), norm=None, overwrite_x=False):
 
     """
 
-    return _pocketfft.fft2(x, s, axes, norm, overwrite_x)
+    return cfg._functions['fft2'](x, s, axes, norm, overwrite_x)
 
 
 def ifft2(x, s=None, axes=(-2, -1), norm=None, overwrite_x=False):
@@ -745,7 +746,7 @@ def ifft2(x, s=None, axes=(-2, -1), norm=None, overwrite_x=False):
 
     """
 
-    return _pocketfft.ifft2(x, s, axes, norm, overwrite_x)
+    return cfg._functions['ifft2'](x, s, axes, norm, overwrite_x)
 
 
 def rfftn(x, s=None, axes=None, norm=None, overwrite_x=False):
@@ -833,7 +834,7 @@ def rfftn(x, s=None, axes=None, norm=None, overwrite_x=False):
             [0.+0.j,  0.+0.j]]])
 
     """
-    return _pocketfft.rfftn(x, s, axes, norm, overwrite_x)
+    return cfg._functions['rfftn'](x, s, axes, norm, overwrite_x)
 
 
 def rfft2(x, s=None, axes=(-2, -1), norm=None, overwrite_x=False):
@@ -871,7 +872,7 @@ def rfft2(x, s=None, axes=(-2, -1), norm=None, overwrite_x=False):
 
     """
 
-    return _pocketfft.rfft2(x, s, axes, norm, overwrite_x)
+    return cfg._functions['rfft2'](x, s, axes, norm, overwrite_x)
 
 
 def irfftn(x, s=None, axes=None, norm=None, overwrite_x=False):
@@ -968,7 +969,7 @@ def irfftn(x, s=None, axes=None, norm=None, overwrite_x=False):
             [1.,  1.]]])
 
     """
-    return _pocketfft.irfftn(x, s, axes, norm, overwrite_x)
+    return cfg._functions['irfftn'](x, s, axes, norm, overwrite_x)
 
 
 def irfft2(x, s=None, axes=(-2, -1), norm=None, overwrite_x=False):
@@ -1006,4 +1007,4 @@ def irfft2(x, s=None, axes=(-2, -1), norm=None, overwrite_x=False):
 
     """
 
-    return _pocketfft.irfft2(x, s, axes, norm, overwrite_x)
+    return cfg._functions['irfft2'](x, s, axes, norm, overwrite_x)

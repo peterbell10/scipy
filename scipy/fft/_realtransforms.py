@@ -1,4 +1,5 @@
 import scipy.fftpack as _fftpack
+from . import _config as cfg
 
 __all__ = ['dct', 'idct', 'dst', 'idst', 'dctn', 'idctn', 'dstn', 'idstn']
 
@@ -11,13 +12,15 @@ def _doc_wrap(transform_func, new_func):
 
 def _doc_wrap_1d(transform_func):
     def inner(x, type=2, n=None, axis=-1, norm=None, overwrite_x=False):
-        return transform_func(x, type, n, axis, norm, overwrite_x)
+        return cfg._functions[transform_func.__name__](
+            x, type, n, axis, norm, overwrite_x)
     return _doc_wrap(transform_func, inner)
 
 
 def _doc_wrap_nd(transform_func):
     def inner(x, type=2, shape=None, axes=None, norm=None, overwrite_x=False):
-        return transform_func(x, type, shape, axes, norm, overwrite_x)
+        return cfg._functions[transform_func.__name__](
+            x, type, shape, axes, norm, overwrite_x)
     return _doc_wrap(transform_func, inner)
 
 
