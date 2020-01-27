@@ -187,8 +187,8 @@ def test_suppress_long_ok(tmpdir):
                                            'sys.exit(0)')
     assert returncode == 0
     assert out == b''
-    assert re.match(b'^    \.\.\. in progress \([0-9 sminh]* elapsed\)\n'
-                    b'    \.\.\. ok \([0-9 sminh]* elapsed\)\n$', err,
+    assert re.match(rb'^    \.\.\. in progress \([0-9 sminh]* elapsed\)\n'
+                    rb'    \.\.\. ok \([0-9 sminh]* elapsed\)\n$', err,
                     re.S)
 
 

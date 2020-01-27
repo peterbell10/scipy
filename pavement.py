@@ -195,7 +195,7 @@ def parse_numpy_version(pyexec):
     if p.returncode:
         raise RuntimeError("Command %s failed" % " ".join(cmd))
 
-    a = re.compile("^([0-9]+)\.([0-9]+)\.([0-9]+)")
+    a = re.compile(r"^([0-9]+)\.([0-9]+)\.([0-9]+)")
     if a:
         return tuple([int(i) for i in a.match(out).groups()[:3]])
     else:
@@ -494,7 +494,7 @@ def macosx_version():
         raise ValueError("Not darwin ??")
     st = subprocess.Popen(["sw_vers"], stdout=subprocess.PIPE)
     out = st.stdout.readlines()
-    ver = re.compile("ProductVersion:\s+([0-9]+)\.([0-9]+)\.([0-9]+)")
+    ver = re.compile(r"ProductVersion:\s+([0-9]+)\.([0-9]+)\.([0-9]+)")
     for i in out:
         m = ver.match(i)
         if m:
