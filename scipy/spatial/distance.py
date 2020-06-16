@@ -49,7 +49,6 @@ functions. Use ``pdist`` for this purpose.
    minkowski        -- the Minkowski distance.
    seuclidean       -- the normalized Euclidean distance.
    sqeuclidean      -- the squared Euclidean distance.
-   wminkowski       -- (deprecated) alias of `minkowski`.
 
 Distance functions between two boolean vectors (representing sets) ``u`` and
 ``v``.  As in the case of numerical vectors, ``pdist`` is more efficient for
@@ -103,7 +102,6 @@ __all__ = [
     'sokalsneath',
     'sqeuclidean',
     'squareform',
-    'wminkowski',
     'yule'
 ]
 
@@ -132,8 +130,7 @@ def _args_to_kwargs_xdist(args, kwargs, metric, func_name):
             braycurtis, canberra, chebyshev, cityblock, correlation, cosine,
             dice, euclidean, hamming, jaccard, jensenshannon, kulsinski,
             mahalanobis, matching, minkowski, rogerstanimoto, russellrao,
-            seuclidean, sokalmichener, sokalsneath, sqeuclidean, yule,
-            wminkowski]):
+            seuclidean, sokalmichener, sokalsneath, sqeuclidean, yule]):
         raise TypeError('When using a custom metric arguments must be passed'
                         'as keyword (i.e., ARGNAME=ARGVALUE)')
 
@@ -340,17 +337,6 @@ def _validate_weights(w, dtype=np.double):
     return w
 
 
-def _validate_wminkowski_kwargs(X, m, n, **kwargs):
-    w = kwargs.pop('w', None)
-    if w is None:
-        raise ValueError('weighted minkowski requires a weight '
-                         'vector `w` to be given.')
-    kwargs['w'] = _validate_weights(w)
-    if 'p' not in kwargs:
-        kwargs['p'] = 2.
-    return kwargs
-
-
 def directed_hausdorff(u, v, seed=0):
     """
     Compute the directed Hausdorff distance between two N-D arrays.
@@ -516,63 +502,6 @@ def minkowski(u, v, p=2, w=None):
         u_v = root_w * u_v
     dist = norm(u_v, ord=p)
     return dist
-
-
-# `minkowski` gained weights in scipy 1.0.  Once we're at say version 1.3,
-# deprecated `wminkowski`.  Not done at once because it would be annoying for
-# downstream libraries that used `wminkowski` and support multiple scipy
-# versions.
-def wminkowski(u, v, p, w):
-    """
-    Compute the weighted Minkowski distance between two 1-D arrays.
-
-    The weighted Minkowski distance between `u` and `v`, defined as
-
-    .. math::
-
-       \\left(\\sum{(|w_i (u_i - v_i)|^p)}\\right)^{1/p}.
-
-    Parameters
-    ----------
-    u : (N,) array_like
-        Input array.
-    v : (N,) array_like
-        Input array.
-    p : int
-        The order of the norm of the difference :math:`{||u-v||}_p`.
-    w : (N,) array_like
-        The weight vector.
-
-    Returns
-    -------
-    wminkowski : double
-        The weighted Minkowski distance between vectors `u` and `v`.
-
-    Notes
-    -----
-    `wminkowski` is DEPRECATED. It implements a definition where weights
-    are powered. It is recommended to use the weighted version of `minkowski`
-    instead. This function will be removed in a future version of scipy.
-
-    Examples
-    --------
-    >>> from scipy.spatial import distance
-    >>> distance.wminkowski([1, 0, 0], [0, 1, 0], 1, np.ones(3))
-    2.0
-    >>> distance.wminkowski([1, 0, 0], [0, 1, 0], 2, np.ones(3))
-    1.4142135623730951
-    >>> distance.wminkowski([1, 0, 0], [0, 1, 0], 3, np.ones(3))
-    1.2599210498948732
-    >>> distance.wminkowski([1, 1, 0], [0, 1, 0], 1, np.ones(3))
-    1.0
-    >>> distance.wminkowski([1, 1, 0], [0, 1, 0], 2, np.ones(3))
-    1.0
-    >>> distance.wminkowski([1, 1, 0], [0, 1, 0], 3, np.ones(3))
-    1.0
-
-    """
-    w = _validate_weights(w)
-    return minkowski(u, v, p=p, w=w**p)
 
 
 def euclidean(u, v, w=None):
@@ -1685,8 +1614,6 @@ _METRICS = {
     'sokalmichener': MetricInfo(aka=['sokalmichener'], types=['bool']),
     'sokalsneath': MetricInfo(aka=['sokalsneath'], types=['bool']),
     'sqeuclidean': MetricInfo(aka=['sqeuclidean', 'sqe', 'sqeuclid']),
-    'wminkowski': MetricInfo(aka=['wminkowski', 'wmi', 'wm', 'wpnorm'],
-                             validator=_validate_wminkowski_kwargs),
     'yule': MetricInfo(aka=['yule'], types=['bool']),
 }
 
@@ -1707,7 +1634,7 @@ def _select_weighted_metric(mstr, kwargs, out):
         # w=None is the same as omitting it
         kwargs.pop("w")
 
-    if mstr.startswith("test_") or mstr in _METRICS['wminkowski'].aka + _METRICS['hamming'].aka:
+    if mstr.startswith("test_") or mstr in _METRICS['hamming'].aka:
         # These support weights
         pass
     elif "w" in kwargs:
@@ -1944,12 +1871,7 @@ def pdist(X, metric='euclidean', *args, **kwargs):
        Computes the Sokal-Sneath distance between each pair of
        boolean vectors. (see sokalsneath function documentation)
 
-    22. ``Y = pdist(X, 'wminkowski', p=2, w=w)``
-
-       Computes the weighted Minkowski distance between each pair of
-       vectors. (see wminkowski function documentation)
-
-    23. ``Y = pdist(X, f)``
+    22. ``Y = pdist(X, f)``
 
        Computes the distance between all pairs of vectors in X
        using the user supplied 2-arity function f. For example,
@@ -2007,9 +1929,8 @@ def pdist(X, metric='euclidean', *args, **kwargs):
         kwargs_blacklist = ["p", "w", "V", "VI"]
 
     elif(metric in _METRICS['minkowski'].aka
-         or metric in _METRICS['wminkowski'].aka
-         or metric in ['test_minkowski', 'test_wminkowski']
-         or metric in [minkowski, wminkowski]):
+         or metric == 'test_minkowski'
+         or metric == minkowski):
         kwargs_blacklist = ["V", "VI"]
 
     elif(metric in _METRICS['seuclidean'].aka or
@@ -2421,7 +2342,7 @@ def cdist(XA, XB, metric='euclidean', *args, **kwargs):
         'cosine', 'dice', 'euclidean', 'hamming', 'jaccard', 'jensenshannon',
         'kulsinski', 'mahalanobis', 'matching', 'minkowski', 'rogerstanimoto',
         'russellrao', 'seuclidean', 'sokalmichener', 'sokalsneath', 'sqeuclidean',
-        'wminkowski', 'yule'.
+        'yule'.
     *args : tuple. Deprecated.
         Additional arguments should be passed as keyword arguments
     **kwargs : dict, optional
@@ -2622,13 +2543,7 @@ def cdist(XA, XB, metric='euclidean', *args, **kwargs):
        Computes the Sokal-Sneath distance between the vectors. (see
        `sokalsneath` function documentation)
 
-
-    22. ``Y = cdist(XA, XB, 'wminkowski', p=2., w=w)``
-
-       Computes the weighted Minkowski distance between the
-       vectors. (see `wminkowski` function documentation)
-
-    23. ``Y = cdist(XA, XB, f)``
+    22. ``Y = cdist(XA, XB, f)``
 
        Computes the distance between all pairs of vectors in X
        using the user supplied 2-arity function f. For example,
@@ -2728,9 +2643,8 @@ def cdist(XA, XB, metric='euclidean', *args, **kwargs):
 
     # compute blacklist for deprecated kwargs
     if(metric in _METRICS['minkowski'].aka or
-       metric in _METRICS['wminkowski'].aka or
-       metric in ['test_minkowski', 'test_wminkowski'] or
-       metric in [minkowski, wminkowski]):
+       metric == 'test_minkowski' or
+       metric == minkowski):
         kwargs_blacklist = ["V", "VI"]
     elif(metric in _METRICS['seuclidean'].aka or
          metric == 'test_seuclidean' or metric == seuclidean):

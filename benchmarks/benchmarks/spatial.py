@@ -341,30 +341,24 @@ class Xdist(Benchmark):
     'seuclidean', 'sqeuclidean', 'cosine', 'correlation', 'hamming', 'jaccard',
     'jensenshannon', 'chebyshev', 'canberra', 'braycurtis', 'mahalanobis',
     'yule', 'dice', 'kulsinski', 'rogerstanimoto', 'russellrao',
-    'sokalmichener', 'sokalsneath', 'wminkowski'])
+    'sokalmichener', 'sokalsneath'])
     param_names = ['num_points', 'metric']
 
     def setup(self, num_points, metric):
         np.random.seed(123)
         self.points = np.random.random_sample((num_points, 3))
-        # use an equal weight vector to satisfy those metrics
-        # that require weights
-        if metric == 'wminkowski':
-            self.w = np.ones(3)
-        else:
-            self.w = None
 
     def time_cdist(self, num_points, metric):
         """Time scipy.spatial.distance.cdist over a range of input data
         sizes and metrics.
         """
-        distance.cdist(self.points, self.points, metric, w=self.w)
+        distance.cdist(self.points, self.points, metric)
 
     def time_pdist(self, num_points, metric):
         """Time scipy.spatial.distance.pdist over a range of input data
         sizes and metrics.
         """
-        distance.pdist(self.points, metric, w=self.w)
+        distance.pdist(self.points, metric)
 
 
 class ConvexHullBench(Benchmark):
