@@ -67,93 +67,97 @@ sqeuclidean_distance_double_blas(const double *u, const double *v, ckdtree_intp_
 inline static double
 sqeuclidean_distance_double(const double *u, const double *v, ckdtree_intp_t n)
 {
-    // Faster than MKL daxpy+ddot up to about 16 dimensional space.
-    // About 3x faster for n < 8.
+    // Faster than MKL daxpy+ddot up to at least 64 dimensional space.
 
-    typedef double vec4d __attribute__ ((vector_size (4*sizeof(double))));
-    typedef double vec2d __attribute__ ((vector_size (2*sizeof(double))));     
-
-    double s = 0.0;
+    using vec2d  = double __attribute__ ((vector_size (2*sizeof(double))));
 
     // manually unrolled loop using GNU vector extensions
-
     const ckdtree_uintp_t un = static_cast<const ckdtree_uintp_t>(n);
 
     switch(un) {
-
-        case 0:
-        break; // help the compiler make a fast jump tab
-
+        case 0: return 0.;
         case 1:
         {
             double d = u[0] - v[0];
-            s = d*d; 
+            return d*d;
         }
-        break;
-
         case 2:
         {
             vec2d _u = {u[0], u[1]};
             vec2d _v = {v[0], v[1]};
             vec2d diff = _u - _v;
             vec2d acc = diff * diff;
-            s = acc[0] + acc[1];
+            return acc[0] + acc[1];
         }
-        break;
-
         case 3:
         {
-            vec4d _u = {u[0], u[1], u[2], 0.0};
-            vec4d _v = {v[0], v[1], v[2], 0.0};
-            vec4d diff = _u - _v;
-            vec4d acc = diff * diff;
-            s = acc[0] + acc[1] + acc[2] + acc[3];
+            vec2d _u[2] = {{u[0], u[1]}, {u[2], 0.0}};
+            vec2d _v[2] = {{v[0], v[1]}, {v[2], 0.0}};
+            vec2d diff[2] = {_u[0] - _v[0], _u[1] - _v[1]};
+            vec2d acc = diff[0] * diff[0] + diff[1] * diff[1];
+            return acc[0] + acc[1];
         }
-        break;
-
         case 4:
         {
-            vec4d _u = {u[0], u[1], u[2], u[3]};
-            vec4d _v = {v[0], v[1], v[2], v[3]};
-            vec4d diff = _u - _v;
-            vec4d acc = diff * diff;
-            s = acc[0] + acc[1] + acc[2] + acc[3];
+            vec2d _u[2] = {{u[0], u[1]}, {u[2], u[3]}};
+            vec2d _v[2] = {{v[0], v[1]}, {v[2], v[3]}};
+            vec2d diff[2] = {_u[0] - _v[0], _u[1] - _v[1]};
+            vec2d acc = diff[0] * diff[0] + diff[1] * diff[1];
+            return acc[0] + acc[1];
         }
-        break;
-
         case 5:
-        case 6:
-        case 7:
-        case 8:
-        case 9:
-        case 10:
-        case 11:
-        case 12:
-        case 13:
-        case 14:
-        case 15:
         {
-            ckdtree_intp_t i;
-            vec4d acc = {0., 0., 0., 0.};
-            for (i = 0; i < n/4; i += 4) {
-                vec4d _u = {u[i], u[i + 1], u[i + 2], u[i + 3]};
-                vec4d _v = {v[i], v[i + 1], v[i + 2], v[i + 3]};
-                vec4d diff = _u - _v;
-                acc += diff * diff;
-            }
-            s = acc[0] + acc[1] + acc[2] + acc[3];
-            if (i < n) {
-                for(; i<n; ++i) {
-                    double d = u[i] - v[i];
-                    s = std::fma(d, d, s);
-                }
-            }
+            vec2d _u[2] = {{u[0], u[1]}, {u[2], u[3]}};
+            vec2d _v[2] = {{v[0], v[1]}, {v[2], v[3]}};
+            vec2d diff[2] = {_u[0] - _v[0], _u[1] - _v[1]};
+            vec2d acc = diff[0] * diff[0] + diff[1] * diff[1];
+            auto diff4 = u[4] - v[4];
+            return acc[0] + acc[1] + diff4 * diff4;
         }
-        break;
+        case 6:
+        {
+            vec2d d2[3];
+            #pragma unroll
+            for (int k = 0; k < 3; ++k) {
+                vec2d _u = { u[2*k], u[2*k + 1] };
+                vec2d _v = { v[2*k], v[2*k + 1] };
+                auto diff = _u - _v;
+                d2[k] = diff * diff;
+            }
+            vec2d acc = d2[0] + d2[1] + d2[2];
+            return acc[0] + acc[1];
+        }
+    }
 
-        default:
-        s = sqeuclidean_distance_double_blas(u, v, n);
+    constexpr int ilp_factor = 2;
+    vec2d acc[ilp_factor]{{0.}};
+    ckdtree_intp_t i;
+    for (i = 0; i + 2 * ilp_factor <= n; i += 2 * ilp_factor) {
+        #pragma unroll
+        for (int k = 0; k < ilp_factor; ++k) {
+            const double * uk = &u[i + 2 * ilp_factor * k];
+            vec2d _u = { uk[0], uk[1] };
 
+            const double * vk = &v[i + 2 * ilp_factor * k];
+            vec2d _v = { vk[0], vk[1] };
+
+            auto diff = _u - _v;
+            acc[k] += diff * diff;
+        }
+    }
+
+    for (; i + 2 <= n; i += 2) {
+        vec2d _u{ u[i], u[i + 1] };
+        vec2d _v{ v[i], v[i + 1] };
+        vec2d diff = _u - _v;
+        acc[0] += diff * diff;
+    }
+
+    auto vs = acc[0] + acc[1];
+    double s = vs[0] + vs[1];
+    if (i < n) {
+        auto diff = u[i] - v[i];
+        s += diff * diff;
     }
     return s;
 }
