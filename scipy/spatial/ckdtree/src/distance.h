@@ -167,99 +167,90 @@ sqeuclidean_distance_double(const double *u, const double *v, ckdtree_intp_t n)
 inline static double
 sqeuclidean_distance_double(const double *u, const double *v, ckdtree_intp_t n)
 {
-    // Faster than MKL daxpy+ddot up to about 12 dimensional space.
+    // Faster than MKL daxpy+ddot up to 50 dimensional space.
     // About 2x faster for n < 6.
-
-    double s = 0.0;
-    // manually unrolled loop using GNU vector extensions
 
     const ckdtree_uintp_t un = static_cast<const ckdtree_uintp_t>(n);
 
     switch(un) {
 
-        case 0:
-        break; // help the compiler make a fast jump tab
-
+        case 0: return 0.0;
         case 1:
         {
             double d = u[0] - v[0];
-            s = d*d; 
+            return d*d;
         }
-        break;
-
         case 2:
         {
-            double _u[2] = {u[0], u[1]};
-            double _v[2] = {v[0], v[1]};
-            double diff[2] = {_u[0] - _v[0], 
-                              _u[1] - _v[1]};
-            s = diff[0] * diff[0];
-            s = std::fma(diff[1], diff[1], s);
+            double diff[2] = {u[0] - v[0],
+                              u[1] - v[1]};
+            return diff[0] * diff[0] + diff[1] + diff[1];
         }
-        break;
-
         case 3:
         {
-            double _u[3] = {u[0], u[1], u[2]};
-            double _v[3] = {v[0], v[1], v[2]};
-            double diff[3] = {_u[0] - _v[0],
-                              _u[1] - _v[1],
-                              _u[2] - _v[2]};
-            s = diff[0] * diff[0];
-            s = std::fma(diff[1], diff[1], s);
-            s = std::fma(diff[2], diff[2], s);
+            double diff[3] = {u[0] - v[0],
+                              u[1] - v[1],
+                              u[2] - v[2]};
+            return (diff[0] * diff[0] +
+                    diff[1] * diff[1] +
+                    diff[2] * diff[2]);
         }
-        break;
-
         case 4:
         {
-            double _u[4] = {u[0], u[1], u[2], u[3]};
-            double _v[4] = {v[0], v[1], v[2], v[3]};
-            double diff[4] = {_u[0] - _v[0],
-                              _u[1] - _v[1],
-                              _u[2] - _v[2],
-                              _u[3] - _v[3]};
-            s = diff[0] * diff[0];
-            s = std::fma(diff[1], diff[1], s);
-            s = std::fma(diff[2], diff[2], s);
-            s = std::fma(diff[3], diff[3], s);
+            double d2[4];
+            #pragma unroll
+            for (int k = 0; k < 4; ++k) {
+                auto diff = u[k] - v[k];
+                d2[k] = diff * diff;
+            }
+            return (d2[0] + d2[1]) + (d2[2] + d2[3]);
         }
-        break;
-
         case 5:
-        case 6:
-        case 7:
-        case 8:
-        case 9:
-        case 10:
-        case 11:
         {
-            ckdtree_intp_t i;
-            for (i = 0; i < n/4; i += 4) {
-                double _u[4] = {u[i], u[i + 1], u[i + 2], u[i + 3]};
-                double _v[4] = {v[i], v[i + 1], v[i + 2], v[i + 3]};
-                double diff[4] = {_u[0] - _v[0],
-                                  _u[1] - _v[1],
-                                  _u[2] - _v[2],
-                                  _u[3] - _v[3]};
-                s = std::fma(diff[0], diff[0], s);
-                s = std::fma(diff[1], diff[1], s);
-                s = std::fma(diff[2], diff[2], s);
-                s = std::fma(diff[3], diff[3], s);
+            double d2[5];
+            #pragma unroll
+            for (int k = 0; k < 5; ++k) {
+                double diff = u[k] - v[k];
+                d2[k] = diff * diff;
             }
-            if (i < n) {
-                for(; i<n; ++i) {
-                    double d = u[i] - v[i];
-                    s = std::fma(d, d, s);
-                }
-            }
+            return (d2[0] + d2[1]) + (d2[2] + d2[3]) + d2[4];
         }
-        break;
+        case 6:
+        {
+            double d2[6];
+            #pragma unroll
+            for (int k = 0; k < 6; ++k) {
+                double diff = u[k] - v[k];
+                d2[k] = diff * diff;
+            }
+            return (d2[0] + d2[1]) + (d2[2] + d2[3]) + (d2[4] + d2[5]);
+        }
+    }
 
-        default:
-        s = sqeuclidean_distance_double_blas(u, v, n);
-    }   
+    if (n > 50) {
+        return sqeuclidean_distance_double_blas(u, v, n);
+    }
 
+    constexpr int ilp_factor = 2;
+    double acc[ilp_factor];
+    #pragma unroll
+    for (int k = 0; k < ilp_factor; ++k) {
+        auto diff = u[k] - v[k];
+        acc[k] = diff * diff;
+    }
+    ckdtree_intp_t i;
+    for (i = ilp_factor; i + ilp_factor <= n; i += ilp_factor) {
+        #pragma unroll
+        for (int k = 0; k < ilp_factor; ++k) {
+            auto diff = u[i + k] - v[i + k];
+            acc[k] += diff * diff;
+        }
+    }
+    double s = acc[0] + acc[1];
+    for(; i < n; ++i) {
+        double d = u[i] - v[i];
+        s += d * d;
+    }
     return s;
 }
 
