@@ -1,4 +1,5 @@
 #include "distance_base.h"
+#include "vec2d.h"
 
 struct PlainDist1D {
     static inline const double side_distance_from_min_max(
@@ -54,153 +55,74 @@ typedef BaseMinkowskiDistP2<PlainDist1D> NonOptimizedMinkowskiDistP2;
  */
 
 
-template <unsigned int n>
-struct sqeucdist_meta
-{
-    double result;
-    sqeucdist_meta(const double * CKDTREE_RESTRICT u, 
-                   const double * CKDTREE_RESTRICT v)
-    {
-        double d = u[0] - v[0];
-        result = d*d + sqeucdist_meta<n-1>(u+1,v+1).result;    
-    };
-};
-
-template <>
-struct sqeucdist_meta<1>
-{
-    double result;
-    sqeucdist_meta(const double * CKDTREE_RESTRICT u, 
-                   const double * CKDTREE_RESTRICT v)
-    {
-        const double d = u[0] - v[0];
-        result = d*d;
-    }
-};
-
-template <>
-struct sqeucdist_meta<2>
-{
-    double result;
-    sqeucdist_meta(const double * CKDTREE_RESTRICT u, 
-                   const double * CKDTREE_RESTRICT v)
-    {
-                
-        const double d[2] = {u[0] - v[0], u[1] - v[1]};
-        result = d[0] * d[0] + d[1] * d[1];                
-    }
-};
-
-template <>
-struct sqeucdist_meta<3>
-{
-    double result;
-    sqeucdist_meta(const double * CKDTREE_RESTRICT u, 
-                   const double * CKDTREE_RESTRICT v)
-    {   
-        const double d[3] = {u[0] - v[0], u[1] - v[1], u[2] - v[2]};
-        result = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
-    }
-};
-
-template <>
-struct sqeucdist_meta<4>
-{
-    double result;
-    sqeucdist_meta(const double * CKDTREE_RESTRICT u, 
-                   const double * CKDTREE_RESTRICT v)
-    {
-        const double d[4] = {u[0] - v[0], u[1] - v[1], u[2] - v[2], u[3] - v[3]};
-        result = d[0] * d[0] + d[1] * d[1] + d[2] * d[2] + d[3] * d[3];
-    }
-};
-
-
-template <>
-struct sqeucdist_meta<8>
-{
-    double result;
-    sqeucdist_meta(const double * CKDTREE_RESTRICT u, 
-                   const double * CKDTREE_RESTRICT v)
-    {
-        const double r[2] = {
-            sqeucdist_meta<4>(u,v).result,
-            sqeucdist_meta<4>(u+4,v+4).result
-        };
-        result = r[0] + r[1];
-    }
-};
-
-
-template <>
-struct sqeucdist_meta<12>
-{
-    double result;
-    sqeucdist_meta(const double * CKDTREE_RESTRICT u, 
-                   const double * CKDTREE_RESTRICT v)
-    {
-        const double r[3] = {
-            sqeucdist_meta<4>(u,v).result,
-            sqeucdist_meta<4>(u+4,v+4).result,
-            sqeucdist_meta<4>(u+8,v+8).result
-        };
-        result = r[0] + r[1] + r[2];
-    }
-};
-
-
-template <>
-struct sqeucdist_meta<16>
-{
-    double result;
-    sqeucdist_meta(const double * CKDTREE_RESTRICT u, 
-                   const double * CKDTREE_RESTRICT v)
-    {
-        const double r[4] = {
-            sqeucdist_meta<4>(u,v).result,
-            sqeucdist_meta<4>(u+4,v+4).result,
-            sqeucdist_meta<4>(u+8,v+8).result,
-            sqeucdist_meta<4>(u+12,v+12).result
-        };
-        result = r[0] + r[1] + r[2] + r[3];
-    }
-};
-
-
-inline static double 
-sqeuclidean_distance_double(const double * CKDTREE_RESTRICT u, 
-                            const double * CKDTREE_RESTRICT v, 
-                            const ckdtree_intp_t n)
+inline double
+sqeuclidean_distance_double(const double *u, const double *v, ckdtree_intp_t n)
 {
     const ckdtree_uintp_t un = static_cast<const ckdtree_uintp_t>(n);
+    using vec2d = ckdtree_vec2d;
+
+    // Computes (a - b) ** 2 in a vec2d
+    auto d2 = [](const double *a, const double *b) {
+             auto diff = vec2d::loadu(a) - vec2d::loadu(b);
+             return diff * diff;
+         };
+    auto d2_scalar = [](const double *a, const double *b) {
+             auto diff = a[0] - b[0];
+             return vec2d::from_scalar(diff * diff);
+         };
 
     switch(un) {
-        case 0: return 0.0;
-        case 1: return sqeucdist_meta<1>(u,v).result;
-        case 2: return sqeucdist_meta<2>(u,v).result;
-        case 3: return sqeucdist_meta<3>(u,v).result;
-        case 4: return sqeucdist_meta<4>(u,v).result;
-        case 5: return sqeucdist_meta<5>(u,v).result;
-        case 6: return sqeucdist_meta<6>(u,v).result;
-        case 7: return sqeucdist_meta<7>(u,v).result;
-        case 8: return sqeucdist_meta<8>(u,v).result;
-        case 9: return sqeucdist_meta<9>(u,v).result;
-        case 10: return sqeucdist_meta<10>(u,v).result;
-        case 11: return sqeucdist_meta<11>(u,v).result;
-        case 12: return sqeucdist_meta<12>(u,v).result;
-        case 13: return sqeucdist_meta<13>(u,v).result;
-        case 14: return sqeucdist_meta<14>(u,v).result;
-        case 15: return sqeucdist_meta<15>(u,v).result;
-        case 16: return sqeucdist_meta<16>(u,v).result;
+        case 0: return 0.;
+        case 1:
+        {
+            auto diff = u[0] - v[0];
+            return diff * diff;
+        }
+        case 2:
+        {
+            return d2(u, v).sum();
+        }
+        case 3:
+        {
+            auto acc = d2(u, v) + d2_scalar(&u[2], &v[2]);
+            return acc.sum();
+        }
+        case 4:
+        {
+            auto acc = d2(&u[0], &v[0]) + d2(&u[2], &v[2]);
+            return acc.sum();
+        }
+        case 5:
+        {
+            auto acc = d2(&u[0], &v[0]) + d2(&u[2], &v[2]) + d2_scalar(&u[4], &v[4]);
+            return acc.sum();
+        }
+        case 6:
+        {
+            auto acc = d2(&u[0], &v[0]) + d2(&u[2], &v[2]) + d2(&u[4], &v[4]);
+            return acc.sum();
+        }
     }
-    double s = 0.0;
-    ckdtree_uintp_t i;
-    for (; i + 16 <= n; i += 16) s += sqeucdist_meta<16>(u+i,v+i).result;
-    for (; i + 8 <= n; i += 8) s += sqeucdist_meta<8>(u+i,v+i).result;
-    for (; i + 4 <= n; i += 4) s += sqeucdist_meta<4>(u+i,v+i).result;
-    for (; i + 2 <= n; i += 2) s += sqeucdist_meta<2>(u+i,v+i).result;
-    if (i < n) s += sqeucdist_meta<1>(u+i,v+i).result;
-    return s;
+
+    constexpr int ilp_factor = 2;
+    vec2d acc[ilp_factor] = { d2(&u[0], &v[0]), d2(&u[2], &v[2]) };
+    ckdtree_intp_t i;
+    for (i = 2 * ilp_factor; i + 2 * ilp_factor <= n; i += 2 * ilp_factor) {
+        #pragma unroll
+        for (int k = 0; k < ilp_factor; ++k) {
+            acc[k] = acc[k] + d2(&u[i + 2 * k], &v[i + 2 * k]);
+        }
+    }
+
+    for (; i + 2 <= n; i += 2) {
+        acc[0] = acc[0] + d2(&u[i], &v[i]);
+    }
+
+    if (i < n) {
+        acc[1] = acc[1] + d2_scalar(&u[i], &v[i]);
+    }
+
+    return (acc[0] + acc[1]).sum();
 }
 
 
