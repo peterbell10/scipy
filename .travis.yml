@@ -121,8 +121,17 @@ matrix:
         - NUMPYSPEC="numpy==1.17.4"
         - USE_SDIST=1
     - python: 3.6
-      name: "Wheel, Optimised"
+      name: "Wheel, Optimised, GCC 4.8"
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-4.8
+            - gcc-4.8
       env:
+        - CC="ccache gcc-4.8"
+        - CXX="ccache g++-4.8"
         - TESTMODE=fast
         - COVERAGE=
         - USE_WHEEL=1
