@@ -2183,16 +2183,18 @@ def moment(a, moment=1, axis=0):
 
     """
     a, axis = _chk_asarray(a, axis)
-    if moment == 1:
-        # By definition the first moment about the mean is 0.
+    if moment == 0 or moment == 1:
+        # By definition the zeroth moment about the mean is 1, and the first
+        # moment is 0.
         shape = list(a.shape)
         del shape[axis]
-        if shape:
-            # return an actual array of the appropriate shape
-            return np.zeros(shape, dtype=float)
+        dtype = a.dtype.type if a.dtype.kind in 'fc' else np.float64
+
+        if len(shape) == 0:
+            return dtype(1.0 if moment == 0 else 0.0)
         else:
-            # the input was 1D, so return a scalar instead of a rank-0 array
-            return np.float64(0.0)
+            return (ma.ones(shape, dtype=dtype) if moment == 0
+                    else ma.zeros(shape, dtype=dtype))
     else:
         # Exponentiation by squares: form exponent sequence
         n_list = [moment]
